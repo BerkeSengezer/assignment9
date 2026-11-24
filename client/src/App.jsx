@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { createBook, listBooks, replaceBook } from './api/books.js';
+import { createBook, deleteBook, editBook, listBooks, replaceBook } from './api/books.js';
 import Filters from './Filters.jsx';
 import BookForm from './BookForm.jsx';
+import BookRow from './BookRow.jsx';
 
 const initialFilters = { q: '', genre: '', read: '', sort: '', order: 'asc' };
 
@@ -64,11 +65,10 @@ export default function App() {
         {books?.length > 0 && (
           <ul className="book-list">
             {books.map((book) => (
-              <li key={book.id}>
-                <h3>{book.title}</h3>
-                <p>{book.author} · {book.year} · {book.genre}</p>
-                <button disabled={busy} onClick={() => { setEditing(book); setSaveError(''); }}>Edit</button>
-              </li>
+              <BookRow key={book.id} book={book} locked={busy || editing !== null}
+                onEdit={(selected) => { setEditing(selected); setSaveError(''); }}
+                onPatch={(id, fields) => makeChange(() => editBook(id, fields))}
+                onDelete={(id) => makeChange(() => deleteBook(id))} />
             ))}
           </ul>
         )}

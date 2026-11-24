@@ -55,4 +55,38 @@ app.delete('/api/books/:id', async (req, res) => {
   return res.status(204).end();
 });
 
+app.get('/api/stats', async (req, res) => {
+  const books = await allBooks();
+  const byGenre = {};
+  let read = 0;
+  let rated = 0;
+  let ratingSum = 0;
+
+  for (const book of books) {
+    byGenre[book.genre] = (byGenre[book.genre] ?? 0) + 1;
+    if (book.read) read++;
+    if (book.rating !== null) {
+      rated++;
+      ratingSum += book.rating;
+    }
+  }
+
+  const total = books.length;
+  const averageRating = rated === 0 ? null : Math.round(ratingSum / rated * 10) / 10;
+  return res.json({ total, read, unread: total - read, averageRating, byGenre });
+});
+
+app.get('/api/crash', async () => {
+  throw new Error('Example async route failure');
+});
+
+app.use('/api', (req, res) => sendError(res, 404, 'Not found'));
+
+app.use((error, req, res, next) => {
+  console.error(error);
+  if (res.headersSent) return next(error);
+  if (error.type === 'entity.parse.failed') return sendError(res, 400, 'Malformed JSON request body');
+  return sendError(res, 500, 'Something went wrong');
+});
+
 app.listen(port, () => console.log(`Reading List API listening on ${port}`));

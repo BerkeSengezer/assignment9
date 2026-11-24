@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { createBook, deleteBook, editBook, listBooks, replaceBook } from './api/books.js';
+import { createBook, deleteBook, editBook, listBooks, readStats, replaceBook } from './api/books.js';
 import Filters from './Filters.jsx';
 import BookForm from './BookForm.jsx';
 import BookRow from './BookRow.jsx';
+import Stats from './Stats.jsx';
 
 const initialFilters = { q: '', genre: '', read: '', sort: '', order: 'asc' };
 
@@ -16,6 +17,8 @@ export default function App() {
   const [saveError, setSaveError] = useState('');
   const [version, setVersion] = useState(0);
   const [formKey, setFormKey] = useState(0);
+  const [stats, setStats] = useState(null);
+  const [statsError, setStatsError] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -28,6 +31,17 @@ export default function App() {
     });
     return () => controller.abort();
   }, [filters, version]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setStatsError('');
+    readStats(controller.signal).then((result) => {
+      if (!controller.signal.aborted) setStats(result);
+    }).catch((error) => {
+      if (!controller.signal.aborted && error.name !== 'AbortError') setStatsError(error.message);
+    });
+    return () => controller.abort();
+  }, [version]);
 
   async function makeChange(operation, onSuccess) {
     setBusy(true);
@@ -53,6 +67,7 @@ export default function App() {
   return (
     <main>
       <h1>Reading List</h1>
+      <Stats data={stats} error={statsError} />
       {saveError && <p role="alert">{saveError}</p>}
       <BookForm key={editing?.id ?? `new-${formKey}`} book={editing} busy={busy}
         onSubmit={submitBook} onCancel={() => { setEditing(null); setSaveError(''); }} />
